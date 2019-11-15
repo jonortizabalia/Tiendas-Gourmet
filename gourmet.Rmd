@@ -1,0 +1,1273 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+getwd()
+setwd("C:/Users/Usuario/Desktop/UOC/2o semestre/Mineria_de_datos/Práctica/archivos")
+datos_tienda<-read.csv("tienda.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_pais<-read.csv("pais.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_region<-read.csv("regiongeografica.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_cliente<-read.csv("cliente.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_producto<-read.csv("producto.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_familia<-read.csv("familia.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_subfamilia<-read.csv("subfamilia.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_seccion<-read.csv("seccion.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_pedido<-read.csv("pedido.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_proveedor<-read.csv("proveedor.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_promocion<-read.csv("promocion.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_lineas<-read.csv("lineasticket.cvs", header=FALSE, fileEncoding='UTF-8')
+datos_cabecera<-read.csv("cabeceraticket.cvs", header=FALSE, fileEncoding='UTF-8')
+# Comprobamos que hemos cargado bien los datos usando la funciÃ³n head()
+head(datos_tienda)
+head(datos_pais)
+head(datos_region)
+head(datos_cliente)
+head(datos_producto)
+head(datos_familia)
+head(datos_subfamilia)
+head(datos_seccion)
+head(datos_pedido)
+head(datos_proveedor)
+head(datos_promocion)
+head(datos_lineas)
+head(datos_cabecera)
+# Añadimos los nombres de los atributos de cada una de las tablas
+colnames(datos_tienda)<-c("nombre", "direccion", "superficie", "formato", "pais", "tipo_zona")
+colnames(datos_pais)<-c("nom_pais", "extension", "poblacion", "nom_region")
+colnames(datos_region)<-c("nom_region", "continente")
+colnames(datos_cliente)<-c("cod_cliente", "nom_cliente", "sexo", "fecha_nac", "estado_civil", "direccion", 
+                           "profesion", "num_hijos", "region", "nacionalidad", "total_compras", "puntos_cumul")
+colnames(datos_producto)<-c("cod_producto", "descripcion", "nom_pais", "coste", "precio_venta", "tipo_unidad",
+                            "nom_subfamilia", "marca", "cod_proveedor")
+colnames(datos_familia)<-c("nom_familia", "descripcion", "nom_seccion")
+colnames(datos_subfamilia)<-c("nom_subfamilia", "descripcion", "nom_familia")
+colnames(datos_seccion)<-c("nom_seccion", "descripcion")
+colnames(datos_pedido)<-c("cod_pedido", "nom_tienda", "cod_producto", "precio_compra", "cantidad_solicitada", 
+                          "fecha_solicitud", "cantidad_entregada", "fecha_entrega")
+colnames(datos_proveedor)<-c("cod_proveedor", "nom_proveedor", "pers_contacto", "direccion",
+                             "telefono", "periodo_pago", "pago_pendiente", "tipo_proveedor", "alcance")
+colnames(datos_promocion)<-c("nom_promo", "tipo_promo", "coste", "fecha_ini",
+                             "fecha_fin", "cod_producto", "nom_familia", "nom_seccion", "nom_tienda", "nom_region", "nom_pais")
+colnames(datos_lineas)<-c("cod_linea", "cod_venta", "nom_tienda", "cod_producto", "cantidad", 
+                          "precio_venta", "nom_promo", "cod_cabecera")
+colnames(datos_cabecera)<-c("cod_venta", "nom_tienda", "fecha", "hora", 
+                            "forma_pago", "cod_cliente", "importe_tot", "tot_unid", "puntos_ticket")
+
+# Hacemos una primera descripciÃ³n de los datos utilizando las funciones str() y summary()
+str(datos_tienda)
+str(datos_pais)
+str(datos_region)
+str(datos_cliente)
+str(datos_producto)
+str(datos_familia)
+str(datos_subfamilia)
+str(datos_seccion)
+str(datos_pedido)
+str(datos_proveedor)
+str(datos_promocion)
+str(datos_lineas)
+str(datos_cabecera)
+
+summary(datos_tienda)
+summary(datos_pais)
+summary(datos_region)
+summary(datos_cliente)
+summary(datos_producto)
+summary(datos_familia)
+summary(datos_subfamilia)
+summary(datos_seccion)
+summary(datos_pedido)
+summary(datos_proveedor)
+summary(datos_promocion)
+summary(datos_lineas)
+summary(datos_cabecera)
+
+# Desglosamos por profesión de cliente
+sort(table(datos_cliente$profesion), decreasing= T)
+
+# Desglosamos por pais del producto
+sort(table(datos_producto$nom_pais), decreasing= T)
+
+# Por qué hay valores nulos en "precio_venta" de datos_lineas? cuales son?
+x<-datos_lineas[(datos_lineas$precio_venta==0),]
+nrow(x)
+
+# Transformación de datos
+
+# Añadimos una nueva variable llamada "tipo_cliente" en la tabla "datos_cliente" 
+# contendrá la informació de si el cliente es "particular" o "empresa"
+library(dplyr)
+datos_cliente<-datos_cliente %>%
+  mutate(tipo_cliente = ifelse(sexo == "Empresa", "Empresa", NA)) 
+head(datos_cliente,20)
+
+# Ahora eliminamos el valor "Empresa" de la columna 
+datos_cliente$sexo[datos_cliente$sexo == "Empresa"]<-NA
+head(datos_cliente,20)
+
+# Sustituimos "NA" por "Particular" en la columna "tipo_cliente"
+datos_cliente$tipo_cliente[is.na(datos_cliente$tipo_cliente)]<-"Particular"
+head(datos_cliente,20)
+
+# Completamos las columnas vac????as en "datos_promocion"
+# col "nom_pais": haremos un match con la tabla "datos_tienda" haciendo matching de la col "nom_tienda"
+as.character(datos_tienda$nombre)
+as.character(datos_promocion$nom_tienda)
+
+# elimino los espacios en blanco que hay en los valores de ambas columnas
+datos_tienda$nombre<-trimws(datos_tienda$nombre)
+datos_promocion$nom_tienda<-trimws(datos_promocion$nom_tienda)
+# hago el matching de valores
+datos_promocion$nom_pais<-datos_tienda$pais[match(datos_promocion$nom_tienda, datos_tienda$nombre)]
+head(datos_promocion)
+
+# col "nom_region": haremos un match con la tabla "datos_pais" haciendo matching de la col "nom_pais"
+datos_promocion$nom_region<-datos_pais$nom_region[match(datos_promocion$nom_pais, datos_pais$nom_pais)]
+head(datos_promocion)
+
+# col "nom_subfamilia": haremos primero un match entre "cod_producto" de tabla "datos_producto con la tabla "datos_nomsubfamilia"
+# y creamos la nueva columna "nom_subfamilia"
+datos_promocion$nom_subfamilia<-datos_producto$nom_subfamilia[match(datos_promocion$cod_producto, datos_producto$cod_producto)]
+head(datos_promocion)
+
+# col "nom_familia": haremos match utilizando "nom_subfamilia" con la tabla "datos_subfamilia"
+datos_promocion$nom_familia<-datos_subfamilia$nom_familia[match(datos_promocion$nom_subfamilia, datos_subfamilia$nom_subfamilia)]
+head(datos_promocion)
+
+# col "nom_seccion": haremos match utilizando "nom_seccion" con la tabla "datos_familia"
+datos_promocion$nom_seccion<-datos_familia$nom_seccion[match(datos_promocion$nom_familia, datos_familia$nom_familia)]
+head(datos_promocion)
+
+# Eliminamos atributos vac????os que no se pueden completar:
+# Tabla “datos_sección”, col “descripcion”
+datos_seccion<-datos_seccion[,-2]
+# Tabla “datos_proveedor”, col “pago_pendiente”, “tipo_proveedor”
+datos_proveedor<-datos_proveedor[,-7:-8]
+# Tabla “datos_promocion”, col “coste”
+datos_promocion<-datos_promocion[,-3]
+
+# Compruebo los valores nulos de las tablas
+list<-list(datos_tienda, datos_pais, datos_region, datos_cliente, datos_cabecera, datos_lineas, datos_promocion, datos_producto, datos_proveedor, datos_pedido, datos_subfamilia, datos_familia, datos_seccion)
+
+# Cambio los valores en blanco de la columna "cod_cliente" de la tabla "datos_cabecera" a NA
+datos_cabecera$cod_cliente[which(datos_cabecera$cod_cliente =="")]<-NA
+length(datos_cabecera$cod_cliente[which(!is.na(datos_cabecera$cod_cliente))])
+length(datos_cabecera$cod_cliente[which(is.na(datos_cabecera$cod_cliente))])
+
+# Añadimos nueva variable llamada "edad" calculada a partir de la fecha de nacimiento
+library(eeptools)
+# Transformo las variables "fecha_nac" de tabla "datos_cliente" y "fecha" de "datos_cabecera" de tipo "integer" a tipo "date"
+datos_cliente<-transform(datos_cliente, fecha_nac = as.Date(as.character(fecha_nac), "%Y%m%d"))
+datos_cabecera<-transform(datos_cabecera, fecha = as.Date(as.character(fecha), "%Y%m%d"))
+head(datos_cabecera)
+
+# Calculo la edad a partir de la fecha de nacimiento usando floor() de eeptools
+datos_cliente$edad<- floor(age_calc(datos_cliente$fecha_nac, units = "years"))
+head(datos_cliente)
+# Reordeno los atributos
+names(datos_cliente)
+datos_cliente<-datos_cliente[,c("cod_cliente","tipo_cliente","nom_cliente","sexo","fecha_nac","edad","estado_civil","direccion","profesion","num_hijos","region","nacionalidad","total_compras","puntos_cumul")]
+head(datos_cliente)
+
+#Discretizo edad
+hist(datos_cliente$edad)
+datos_cliente$rango_edad<-cut(datos_cliente$edad, breaks=c(35,45,55,65,75,85,95,110), labels=c("35-45", "45-55", "55-65", "65-75", "75-85","85-95", "95-110"), right=TRUE)
+head(datos_cliente)
+head(datos_seccion)
+```
+
+
+```{r}
+# Análisis descriptivo de los datos
+# Tiendas
+# Desglosamos por pais
+table(datos_tienda$pais)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+
+g1<-ggplot(datos_tienda, aes(pais)) +
+  geom_bar(fill = "royalblue") + 
+  theme(axis.text=element_text(size=8, face="bold", angle =90),
+        axis.title=element_text(size=12,face="bold"))
+
+g2<-ggplot(datos_tienda, aes(formato)) +
+  geom_bar(fill = "tomato") +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=12,face="bold"))
+
+grid.arrange(g1, g2,ncol=2)
+
+ggplot(datos_tienda, aes(pais, formato))+
+  geom_count(color="forestgreen")
+
+```
+
+```{r}
+# Analizamos las ventas por pais o formato de tienda
+#Analizamos las ventas por tienda
+
+group_tienda <- group_by(datos_cabecera, nom_tienda)
+summaryTable <- summarise(group_tienda, sumimporte = sum(importe_tot))
+ventas_tienda<-summaryTable[order(summaryTable$sumimporte, decreasing=TRUE),]
+ventas_tienda
+
+library(hrbrthemes)
+library(scales)
+g3<-ggplot(ventas_tienda,aes(x=nom_tienda, y=sumimporte) ) +
+    geom_segment(aes(x=nom_tienda ,xend=nom_tienda, y=0, yend=sumimporte), color="grey") +
+    geom_point(size=3, color="darkorchid") +
+    scale_y_continuous(labels = comma)+
+    coord_flip() +
+    theme_ipsum() +
+    theme(
+      panel.grid.minor.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      legend.position="none"
+    ) +
+    xlab("") +
+    ylab("Importe total (Eur)")
+g3
+
+# Primero cruzamos las tablas "ventas_tienda" y "datos_pais" por el nombre de tienda para obtener el pa????s
+# Comprobamos que no haya espacios en blanco en “nom_tienda” de “datos_tienda”:
+as.character(datos_tienda$nombre)
+as.character(ventas_tienda$nom_tienda)
+# Quitamos los espacios en blanco
+ventas_tienda$nom_tienda<-trimws(ventas_tienda$nom_tienda)
+# Hacemos el cruce de tablas
+ventas_tienda$pais<-datos_tienda$pais[match(ventas_tienda$nom_tienda, datos_tienda$nombre)]
+head(ventas_tienda)
+write.table(ventas_tienda, file = "ventas_tienda.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+
+# Agrupamos las ventas por pa????s en una nueva tabla: “ventas_pais”
+
+group_pais <- group_by(ventas_tienda, pais)
+summaryTable2 <- summarise(group_pais, sumimporte = sum(sumimporte))
+ventas_pais<-summaryTable2[order(summaryTable2$sumimporte, decreasing=TRUE),]
+head(ventas_pais)
+write.table(ventas_pais, file = "ventas_pais.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+# Hacemos el gráfico agrupando por pais:
+g4<-ggplot(ventas_pais,aes(x=pais, y=sumimporte) ) +
+    geom_segment(aes(x=pais ,xend=pais, y=0, yend=sumimporte), color="grey") +
+    geom_point(size=3, color="darkorchid") +
+    scale_y_continuous(labels = comma)+
+    coord_flip() +
+    theme_ipsum() +
+    theme(
+      panel.grid.minor.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      legend.position="none"
+    ) +
+    xlab("") +
+    ylab("Importe total (Eur)")
+g4
+
+# Hacemos el gráfico por pais pero visulaizando cada tienda:
+
+ggplot(ventas_tienda, aes(pais, sumimporte)) +
+    geom_boxplot(fill="darkorchid")+
+    geom_dotplot(binaxis='y', stackdir='center', dotsize=1)+
+    scale_y_continuous(labels = comma)
+
+# Ahora estudiaremos si hay correlación entre los ingresos por pais y el número de tiendas por pais
+# Creamos una tabla temporal con la información del número de tiendas por pa????s
+d<-as.data.frame(table(datos_tienda$pais))
+# Cruzamos las tablas "ventas_pais" y la tabla temporal recién creada
+# Creamos una nueva columna en "ventas_pais" con la información del número de tiendas 
+ventas_pais$num_tiendas<-d$Freq[match(ventas_pais$pais, d$Var1)]
+# Graficamos la correlación entre número de tiendas y facturación por pais
+g5<-ggplot(ventas_pais, aes(x=num_tiendas, y=sumimporte, color=pais)) +
+    geom_point(size=6, alpha=0.6)+
+    scale_y_continuous(labels = comma)
+g5
+
+
+# Sacamos los datos de correlación
+library(corrplot)
+cor(ventas_pais[,2:3])
+
+# Ahora estudiaremos si hay correlación entre los ingresos por pais y el formato de tienda
+# Creamos una tabla temporal con los datos del número de tiendas con cada uno de los formatos
+
+d2<-as.data.frame(table(datos_tienda$formato))
+
+# Cruzamos las tablas "ventas_tienda" y "la tabla temporal recién creada "datos_tienda""
+# Creamos una nueva columna en "ventas_pais" con la información del formato de tienda
+
+ventas_tienda$formato_tienda<-datos_tienda$formato[match(ventas_tienda$nom_tienda, datos_tienda$nombre)]
+
+# Creamos una nueva tabla temporal con el sumatorio de ingresos por formato de tienda
+
+group_formato <- group_by(ventas_tienda, formato_tienda)
+summaryTable2 <- summarise(group_formato, sumimporte = sum(sumimporte))
+
+# Hacemos un cruce entre las tablas temporales "summaryTable2" y "d2" para tener toda la información junta
+
+summaryTable2$count_tiendas<-d2$Freq[match(d2$Var1, summaryTable2$formato_tienda)]
+
+# Volcamos los datos en la tabla definitiva "ventas_formato"
+
+ventas_formato<-summaryTable2
+head(ventas_formato)
+write.table(ventas_formato, file = "ventas_formato.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+
+# Graficamos la correlación entre la facturación y el formato de la tienda
+g6<-ggplot(ventas_tienda, aes(formato_tienda, sumimporte)) +
+    geom_boxplot(fill="darkorchid")+
+    geom_dotplot(binaxis='y', stackdir='center', dotsize=1)+
+    scale_y_continuous(labels = comma)
+
+
+# Comprobamos la correlaci?n entre num de tiendas de cada formato con ingresos
+cor(ventas_formato[,2:3])
+
+# correlacion entre superficie e ingresos?
+
+ventas_tienda$superficie<-datos_tienda$superficie[match(ventas_tienda$nom_tienda, datos_tienda$nombre)]
+g7<-ggplot(ventas_tienda, aes(superficie, sumimporte)) +
+    geom_jitter(fill="darkorchid")+
+    scale_y_continuous(labels = comma)
+cor(ventas_tienda$superficie, ventas_tienda$sumimporte)
+
+
+```
+
+```{r}
+# Análisis descriptivo de los datos
+
+# Clientes
+
+# Desglosamos por tipo de cliente
+table(datos_cliente$tipo_cliente)
+# Graficamos
+g7<-ggplot(datos_cliente,aes(tipo_cliente))+
+  geom_bar(fill="royalblue")
+
+# Desglosamos por tipo de empresa
+table(datos_cliente$profesion[which(datos_cliente$tipo_cliente=="Empresa")])
+
+# Desglosamos por sexo de cliente
+prop.table(table(datos_cliente$sexo))
+g8<-ggplot(data=subset(datos_cliente, !is.na(sexo)), aes(sexo))+
+  geom_bar(fill = "royalblue") + 
+  theme(axis.text=element_text(size=8, face="bold", angle =90),
+        axis.title=element_text(size=12,face="bold"))
+g8
+g9<-ggplot(data=subset(datos_cliente, datos_cliente$tipo_cliente=="Particular"), aes(profesion)) +
+  geom_bar(fill = "tomato") +
+  theme(axis.text.x=element_text(size=10,angle =90),
+        axis.title=element_text(size=12,face="bold"))+
+  aes(stringr::str_wrap(profesion, 15)) + xlab(NULL)
+g9
+grid<-grid.arrange(g8, g9,ncol=2)
+
+# Creo la tabla "cliente_part"
+cliente_part<-datos_cliente[datos_cliente$tipo_cliente=="Particular",]
+cliente_part<-droplevels(cliente_part) 
+
+# Estudiamos los clientes por profesión:
+prop.table(table(cliente_part$profesion))
+g10<-ggplot(data=subset(datos_cliente, datos_cliente$tipo_cliente=="Particular"), aes(x=profesion, fill=sexo))+
+  geom_bar()+
+  theme(axis.text.x=element_text(size=10,angle =90),
+        axis.title=element_text(size=12,face="bold"))+
+  aes(stringr::str_wrap(profesion, 15)) + xlab(NULL)
+
+# Estudiamos los clientes por edad
+
+summary(subset(datos_cliente$edad, datos_cliente$tipo_cliente=="Particular"))
+
+g11<-ggplot(data=subset(datos_cliente, datos_cliente$tipo_cliente=="Particular"), aes(edad))+
+  geom_histogram(binwidth=0.65, fill="royalblue", colour="")
+  
+g12<-ggplot(data=subset(datos_cliente, datos_cliente$tipo_cliente=="Particular"), aes(edad, fill=sexo))+
+  geom_histogram(binwidth=0.65, colour="royalblue")
+
+#datos_cliente[datos_cliente$edad=="59",]
+#nrow(datos_cliente[datos_cliente$edad=="59",])
+
+# Estudiamos los clientes por estado civil:
+table(cliente_part$estado_civil, cliente_part$sexo)
+table(cliente_part$estado_civil)
+prop.table(table(cliente_part$estado_civil))
+g13<-ggplot(data=subset(datos_cliente, datos_cliente$tipo_cliente=="Particular"), aes(estado_civil, fill=sexo))+
+  geom_bar()
+
+# Estudiamos los clientes por rangos de edad:
+table(cliente_part$rango_edad, cliente_part$sexo)
+table(cliente_part$rango_edad)
+prop.table(table(cliente_part$rango_edad))
+ggplot(cliente_part, aes(rango_edad, fill=sexo))+
+  geom_bar()
+
+# Estudiamos los clientes por número de hijos:
+table(cliente_part$num_hijos, cliente_part$sexo)
+table(cliente_part$num_hijos)
+prop.table(table(cliente_part$num_hijos))
+ggplot(data=subset(datos_cliente, datos_cliente$tipo_cliente=="Particular"), aes(num_hijos, fill=sexo))+
+  geom_bar()
+
+# Estudiamos los clientes por nacionalidad:
+table(cliente_part$nacionalidad, cliente_part$sexo)
+table(cliente_part$nacionalidad)
+prop.table(table(cliente_part$nacionalidad))
+ggplot(data=subset(datos_cliente, datos_cliente$tipo_cliente=="Particular"), aes(nacionalidad, fill=sexo))+
+  geom_bar()
+
+# Relaci?n con facturaci?n
+
+# Calculo "Monetary" (importe total de compras realizadas por usuario)
+# Creo una nueva tabla con aquellos registros de "datos_cabecera" que no contengan valores nulos en "cod_cliente"
+datos_cabecera$cod_cliente<-trimws(datos_cabecera$cod_cliente)
+datos_cabecera_cod<-datos_cabecera[which(!is.na(datos_cabecera$cod_cliente)),]
+# Agrupo los registros por código de cliente de la tabla
+group_cod<-group_by(datos_cabecera_cod,cod_cliente)
+monetary <- summarise(group_cod, monetary = sum(importe_tot))
+
+# Añado la columna "monetary" a "cliente_part", antes hago crossmatch con "cod_cliente"
+cliente_part$monetary<-monetary$monetary[match(cliente_part$cod_cliente,monetary$cod_cliente)]
+head(cliente_part)
+
+# Sexo y facturaci?n
+group_sexo<-group_by(cliente_part,sexo)
+fact_sexo <- summarise(group_sexo, monetary = sum(monetary, na.rm=TRUE)/n())
+head(fact_sexo)
+t.test(cliente_part$monetary~cliente_part$sexo, var.equal=TRUE)
+
+# Profesion y facturaci?n
+group_prof<-group_by(cliente_part,profesion)
+fact_prof <- summarise(group_prof, monetary = sum(monetary, na.rm=TRUE)/n())
+head(fact_prof)
+mean(fact_prof$monetary)
+summary(aov(cliente_part$monetary~cliente_part$profesion))
+
+# Estado civil y facturaci?n
+group_estadociv<-group_by(cliente_part,estado_civil)
+fact_estadociv <- summarise(group_estadociv, monetary = sum(monetary, na.rm=TRUE)/n())
+fact_estadociv
+mean(fact_estadociv$monetary)
+summary(aov(cliente_part$monetary~cliente_part$estado_civil))
+
+# nacionalidad y facturaci?n
+group_nacion<-group_by(cliente_part,nacionalidad)
+fact_nacion<- summarise(group_nacion, monetary = sum(monetary, na.rm=TRUE)/n())
+head(fact_nacion)
+mean(fact_nacion$monetary)
+summary(aov(cliente_part$monetary~cliente_part$nacionalidad))
+
+# Edad y facturaci?n
+group_edad<-group_by(cliente_part,rango_edad)
+fact_edad<- summarise(group_edad, monetary = sum(monetary, na.rm=TRUE)/n())
+head(fact_edad)
+mean(fact_edad$monetary)
+summary(aov(cliente_part$monetary~cliente_part$rango_edad))
+
+# Hijos y facturaci?n
+cliente_part$num_hijos<-as.factor(cliente_part$num_hijos)
+group_hijos<-group_by(cliente_part,num_hijos)
+fact_hijos<- summarise(group_hijos, monetary = sum(monetary, na.rm=TRUE)/n())
+head(fact_hijos)
+mean(fact_hijos$monetary)
+summary(aov(cliente_part$monetary~cliente_part$num_hijos))
+
+gr1<-ggplot(cliente_part, aes(sexo, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)
+gr1
+
+gr2<-ggplot(cliente_part, aes(profesion, monetary, fill=profesion)) +
+    geom_boxplot()+
+    scale_y_continuous(labels = comma)+
+  theme(axis.text.x=element_blank())
+gr2
+
+gr3<-ggplot(cliente_part, aes(estado_civil, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)
+
+gr3
+
+gr4<-ggplot(cliente_part, aes(nacionalidad, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)
+
+gr4
+
+gr5<-ggplot(cliente_part, aes(rango_edad, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)
+
+gr5
+
+gr6<-ggplot(cliente_part, aes(num_hijos, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)
+gr6
+
+# Limitando el max en el eje y ("monetary") a 1000:
+
+gr8<-ggplot(cliente_part, aes(sexo, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)+
+  ylim(0,1000)
+gr8
+
+gr9<-ggplot(cliente_part, aes(profesion, monetary, fill=profesion)) +
+    geom_boxplot()+
+    scale_y_continuous(labels = comma)+
+  ylim(0,1000)+
+  theme(axis.text.x=element_blank())
+gr9
+
+gr10<-ggplot(cliente_part, aes(estado_civil, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)+
+  ylim(0,1000)
+gr10
+
+gr11<-ggplot(cliente_part, aes(nacionalidad, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)+
+  ylim(0,1000)
+gr11
+
+gr12<-ggplot(cliente_part, aes(rango_edad, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)+
+  ylim(0,1000)
+gr12
+
+gr13<-ggplot(cliente_part, aes(num_hijos, monetary)) +
+    geom_boxplot(fill="tomato")+
+    scale_y_continuous(labels = comma)+
+  ylim(0,1000)
+gr13
+
+
+```
+
+```{r}
+#Clustering analysis (RFM analysis)
+# Recency ("Compra más reciente de cada usuario")
+
+# Calculo "recency", es decir los d????as que han pasado de la última compra
+recency <- summarise(group_cod, recency = as.numeric(as.Date("2000-12-31")-max(fecha)))
+head(recency)
+
+# Sólo me interesan los códigos de clientes particulares, hago un crossmatch con "cliente_part"
+# Creamos una nueva columna "recency" en la tabla "cliente_part" y añadimos la info
+cliente_part$recency<-recency$recency[match(cliente_part$cod_cliente,recency$cod_cliente)]
+
+# "Frequency" ser????a el equivalente a la variable "total_compras" (número de comprar realizadas por usuario)
+frequency<-summarise(group_cod, frequency = n())
+cliente_part$frequency<-frequency$frequency[match(cliente_part$cod_cliente,frequency$cod_cliente)]
+head(frequency)
+
+# Monetary se ha calculado anteriormente
+
+# Saco la estad????stica de los 3 parámetros
+summary(cliente_part$recency)
+summary(cliente_part$frequency)
+summary(cliente_part$monetary)
+
+# Reemplazo los valores "NA" por "0" para los 3 parámetros ya que corresponde a clientes que no han hecho compras en el último año
+#cliente_part$recency[is.na(cliente_part$recency)]<-365
+#cliente_part$frequency[is.na(cliente_part$frequency)]<-0
+#cliente_part$monetary[is.na(cliente_part$monetary)]<-0
+
+#cliente_part$recency<-as.numeric(cliente_part$recency)
+#cliente_part$frequency<-as.numeric(cliente_part$frequency)
+#cliente_part$monetary<-as.numeric(cliente_part$monetary)
+
+# Visualizo los datos
+g13<-ggplot(cliente_part, aes(recency))+
+  geom_histogram(colour="white", fill="royalblue")
+
+g14<-ggplot(cliente_part, aes(frequency))+
+  geom_histogram(colour="white", fill="royalblue")
+
+g15<-ggplot(cliente_part, aes(monetary))+
+  geom_histogram(colour="white", fill="royalblue")
+
+grid<-grid.arrange(g13, g14, g15, nrow=2, ncol=2)
+
+# Normalizo los datos de las 3 variables usando scale(): media=0, STDEV=1
+data_cluster<-cliente_part
+data_cluster$monetary<-scale(data_cluster$monetary)
+data_cluster$recency<-scale(data_cluster$recency)
+data_cluster$frequency<-scale(data_cluster$frequency)
+
+# Aplico clustering a los datos de tipo numérico mediante kmeans
+# Fijando en 2, 4 u 8 centroides:
+library (cluster)
+head(data_cluster)
+x<-data_cluster[,16:18]
+x<-na.omit(x)
+
+fit2<-kmeans(x,2)
+y_cluster2<-fit2$cluster
+head(y_cluster2)
+clusplot(x,fit2$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+fit4<-kmeans(x,4)
+y_cluster4<-fit4$cluster
+clusplot(x,fit4$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+fit8<-kmeans(x,8)
+y_cluster8<-fit8$cluster
+clusplot(x,fit8$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+# Evaluo los modelos de agregación de kmeans mediante el parámetro silhouette width
+# Primero utilizo la función daisy() para hallar la matriz de disimilaridad
+typeof(x)
+x<-as.matrix(x)
+typeof(x)
+d<-daisy(x)
+sk2<-silhouette(y_cluster2,d)
+sk4<-silhouette(y_cluster4,d)
+sk8<-silhouette(y_cluster8,d)
+
+mean(sk2[,3])
+mean(sk4[,3])
+mean(sk8[,3])
+
+# Pruebo todo el rango de clusters que va de 2 a 10
+resultados<-rep(0,10)
+for (i in c(2,3,4,5,6,7,8,9,10)) {
+  fit<-kmeans(x,i)
+  y_cluster<-fit$cluster
+  sk<-silhouette(y_cluster,d)
+  resultados[i]<-mean(sk[,3])
+}
+resultados
+#Visualizo los resultados de silhouette 
+plot(2:10, resultados[2:10], type="o", col="blue", pch=0, xlab="Número de clusters", ylab="Silueta")
+
+# Visualizo los clusters con clusplot()
+
+fit2<-kmeans(x,2)
+y_cluster2<-fit2$cluster
+clusplot(x,fit2$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+fit3<-kmeans(x,3)
+y_cluster3<-fit3$cluster
+clusplot(x,fit3$cluster, color=TRUE, shade=TRUE, labels=3, lines=0)
+
+# Confirmo el número de clusters óptimo utilizando la función kmeansruns()
+library(fpc)
+fit_ch<-kmeansruns(x, krange=1:10, criterion = "ch")
+fit_asw<-kmeansruns(x, krange=1:10, criterion = "asw")
+fit_ch$bestk
+fit_asw$bestk
+
+plot(1:10, fit_ch$crit, type="o", col="blue", pch=0, xlab="Número de clusters",
+     ylab="Criterio Calinski_Harabasz")
+plot(1:10, fit_asw$crit, type="o", col="blue", pch=0, xlab="Número de clusters",
+     ylab="Criterio asw")
+
+# Partitioning clustering using k-medoids clustering
+library(factoextra)
+
+for (i in c(2,3,4,5,6,7,8,9,10)) {
+  pam.iter <- pam(x, i)
+  sk<-silhouette(pam.iter,d)
+  resultados[i]<-mean(sk[,3])
+}
+resultados
+plot(2:10, resultados[2:10], type="o", col="blue", pch=0, xlab="Número de clusters", ylab="Silueta")
+pam.res<-pam(x,3, stand=TRUE)
+fviz_cluster(pam.res)
+
+clusters<-pam.res$clustering
+head(clusters)
+d_medoid<-as.data.frame(clusters)
+head(d_medoid)
+
+# Ward hierarchical clustering
+d <- dist(x, method = "euclidean")
+fit <- hclust(d, method="ward") 
+for (i in c(2,3,4,5,6,7,8,9,10)) {
+  groups <- cutree(fit, i)
+  sk<-silhouette(groups,d)
+  resultados[i]<-mean(sk[,3])
+}
+resultados
+plot(2:10, resultados[2:10], type="o", col="blue", pch=0, xlab="Número de clusters", ylab="Silueta")
+plot(fit)
+
+
+```
+
+```{r}
+# Escojo los resultados de k-medoids con 3 clusters para hacer análisis 
+#Añado la columna "nom_tienda" a la tabla "clientes_part"
+# Creamos una nueva columna "nom_tienda" en la tabla "cliente_part" y añadimos la info
+cliente_part$nom_tienda<-datos_cabecera_cod$nom_tienda[match(cliente_part$cod_cliente, datos_cabecera_cod$cod_cliente)]
+# Añado la info de los clusters a "clientes_part"
+cluster_df<-cbind(x, d_medoid)
+data_cluster$cluster<-cluster_df$clusters[match(data_cluster$recency, cluster_df$recency)]
+cliente_part$cluster<-data_cluster$cluster[match(cliente_part$cod_cliente, data_cluster$cod_cliente)]
+cliente_part$cluster<-as.factor(cliente_part$cluster)
+head(cliente_part)
+
+write.table(cliente_part, file = "cliente_part.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+
+# Análisis descriptivo entre clusters
+
+table(cliente_part$cluster)
+table(cliente_part$cluster,cliente_part$nom_tienda)
+
+tapply(cliente_part$monetary, cliente_part$cluster, mean)
+tapply(cliente_part$recency, cliente_part$cluster, mean)
+tapply(cliente_part$frequency, cliente_part$cluster, mean)
+
+aggregate(cliente_part[,16:18], by=list(cliente_part$cluster), mean)
+
+#ggplot(cliente_part, aes(x=cluster, y=monitery)) +
+    #geom_boxplot()+
+    #scale_y_continuous(labels = comma)
+
+cliente_part2<-cliente_part%>%
+  group_by(cluster)%>%
+  mutate(n = n()/nrow(cliente_part))
+
+g16<-ggplot(cliente_part2, aes(x=monetary, fill=cluster)) +
+    geom_density(aes(weight=n),col=NA, alpha=0.35)
+g16
+g17<-ggplot(cliente_part2, aes(x=recency, fill=cluster)) +
+    geom_density(aes(weight=n),col=NA, alpha=0.35) 
+g17
+g18<-ggplot(cliente_part2, aes(x=frequency, fill=cluster)) +
+    geom_density(aes(weight=n),col=NA, alpha=0.35)  
+g18
+
+grid.arrange(g16, g17, g18, nrow=3, ncol=1, heights=c(10,10,10))
+
+
+
+cluster1<-cliente_part[which(cliente_part$cluster==1),]
+summary(cluster1$recency)
+
+cluster2<-cliente_part[which(cliente_part$cluster==2),]
+summary(cluster2$recency)
+
+cluster3<-cliente_part[which(cliente_part$cluster==3),]
+summary(cluster3$recency)
+
+g19<-ggplot(cliente_part, aes(x=cluster, y=recency)) +
+    geom_boxplot()+
+    scale_y_continuous(labels = comma)
+g19
+
+g20<-ggplot(cliente_part, aes(x=cluster, y=frequency)) +
+    geom_boxplot()+
+    scale_y_continuous(labels = comma)
+g20
+
+ggplot(cliente_part, aes(x=cluster, y=monetary)) +
+    geom_boxplot()+
+    scale_y_continuous(labels = comma)
+
+# Listado de cientes de cada cluster
+ventas_producto<-datos_producto
+clientes_cluster1<-cliente_part[which(cliente_part$cluster==1),]
+write.table(ventas_producto, file = "clientes_cluster1.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+
+clientes_cluster2<-cliente_part[which(cliente_part$cluster==2),]
+write.table(ventas_producto, file = "clientes_cluster2.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+
+clientes_cluster3<-cliente_part[which(cliente_part$cluster==3),]
+write.table(ventas_producto, file = "clientes_cluster3.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+
+
+```
+
+```{r}
+#Análisis descriptivo de productos. Cuales son los que más se venden?
+# En tabla "datos_lineas" tenemos la info de los productos vendidos
+# Limpio los espacios en blanco de "nom_tienda", "cod_producto" y "nom_promo" de table "datos_lineas"
+datos_lineas$cod_producto<-trimws(datos_lineas$cod_producto)
+datos_lineas$nom_tienda<-trimws(datos_lineas$nom_tienda)
+datos_lineas$nom_promo<-trimws(datos_lineas$nom_promo)
+# Agrupo los datos por "cod_producto"
+group_producto <- group_by(datos_lineas, cod_producto)
+summaryTable4 <- summarise(group_producto, sumcantidad = sum(cantidad), sumventas=n())
+head(summaryTable4)
+# Limpio los espacios en blanco de "descripcion", "nom_pais", "marca", "nom_subfamilia" y "tipo_unidad" de table "datos_productos"
+datos_producto$descripcion<-trimws(datos_producto$descripcion)
+datos_producto$nom_pais<-trimws(datos_producto$nom_pais)
+datos_producto$tipo_unidad<-trimws(datos_producto$tipo_unidad)
+datos_producto$marca<-trimws(datos_producto$marca)
+datos_producto$nom_subfamilia<-trimws(datos_producto$nom_subfamilia)
+
+# A?ado las variables "sumcantidad" y "sumventas" a la tabla "datos_producto" y creo una nueva tabla"ventas_producto"
+ventas_producto<-datos_producto
+ventas_producto$sumcantidad<-summaryTable4$sumcantidad[match(datos_producto$cod_producto, summaryTable4$cod_producto)]
+ventas_producto$sumventas<-summaryTable4$sumventas[match(datos_producto$cod_producto, summaryTable4$cod_producto)]
+head(ventas_producto)
+
+# A?ado nueva variable "ingresos" en tabla "ventas_producto", y a?adir? valor de multiplicar "sumcantidad" por "precio_venta""
+ventas_producto<-ventas_producto %>%
+  mutate(ingresos = precio_venta*sumcantidad)
+head(ventas_producto)
+
+# A?ado nueva variable "gastos" en tabla "ventas_producto" y a?adir? el resultado de multiplicar "sumcantidad por "coste"
+ventas_producto<-ventas_producto %>%
+  mutate(gastos = coste*sumcantidad)
+head(ventas_producto)
+
+# A?ado nueva variable "beneficios" en tabla "ventas_producto" y a?adir? el resultado de restar "ingresos" -"gastos" 
+ventas_producto<-ventas_producto %>%
+  mutate(beneficios = ingresos-gastos)
+head(ventas_producto,20)
+
+# Ordeno los productos por "sumcantidad" de mayor a menor para ver los que m?s se venden
+ventas_producto<-ventas_producto[order(-ventas_producto$sumcantidad),]
+nrow(ventas_producto)
+ventas_top25<-ventas_producto[1:25,c("cod_producto", "descripcion","marca", "sumcantidad", "sumventas")]
+head(ventas_top25)
+write.table(ventas_producto, file = "ventas_producto.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+summary(ventas_producto$sumcantidad)
+
+# Ordeno los productos por "sumcantidad" de menor a mayor para ver los que menos se venden
+ventas_producto<-ventas_producto[order(ventas_producto$sumcantidad),]
+ventas_last25<-ventas_producto[1:25,c("cod_producto", "descripcion","marca", "sumcantidad", "sumventas")]
+head(ventas_last25)
+summary(ventas_producto$sumcantidad)
+
+# Elimino espacios en blanco en "nom_subfamilia", "nom_familia" de tabla "datos_subfamilia"
+datos_subfamilia$nom_subfamilia<-trimws(datos_subfamilia$nom_subfamilia)
+datos_subfamilia$nom_familia<-trimws(datos_subfamilia$nom_familia)
+# Elimino espacios en blanco en "nom_familia" y "nom_seccion" de tabla "datos_familia"
+datos_familia$nom_familia<-trimws(datos_familia$nom_familia)
+datos_familia$nom_seccion<-trimws(datos_familia$nom_seccion)
+
+# A?ado columnas "familia" y "seccion" a "ventas_producto"
+ventas_producto$nom_familia<-datos_subfamilia$nom_familia[match(ventas_producto$nom_subfamilia, datos_subfamilia$nom_subfamilia)]
+ventas_producto$nom_seccion<-datos_familia$nom_seccion[match(ventas_producto$nom_familia, datos_familia$nom_familia)]
+
+# Ordeno los productos por los que m?s beneficio dan
+ventas_producto<-ventas_producto[order(-ventas_producto$beneficios),]
+nrow(ventas_producto)
+beneficios_top25<-ventas_producto[1:25,c("cod_producto","descripcion","marca","nom_seccion", "sumcantidad","beneficios")]
+head(beneficios_top25)
+write.table(ventas_producto, file = "beneficios_producto.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+
+# Ordeno los productos por los que menos beneficio dan
+ventas_producto<-ventas_producto[order(ventas_producto$beneficios),]
+nrow(ventas_producto)
+beneficios_last25<-ventas_producto[1:25,c("cod_producto", "descripcion","marca","nom_seccion", "sumcantidad","beneficios")]
+head(beneficios_last25)
+
+# Primero hago el summary de "beneficios
+summary(ventas_producto$beneficios)
+# Compruebo cual es el registro con valor nulo en beneficios
+ventas_producto[which(is.na(ventas_producto$beneficios)),]
+# Reemplazo el valor nulo por 0 en "beneficios", "sumcantidad", "sumventas" y "ingresos"
+ventas_producto$beneficios[is.na(ventas_producto$beneficios)]<-0
+ventas_producto$ingresos[is.na(ventas_producto$ingresos)]<-0
+ventas_producto$sumcantidad[is.na(ventas_producto$sumcantidad)]<-0
+ventas_producto$sumventas[is.na(ventas_producto$sumventas)]<-0
+
+# Grafico "sumcantidad" Vs "beneficios
+ggplot(ventas_producto, aes(sumcantidad, y=beneficios)) +
+    geom_text(aes(label=descripcion), size=3, color="royalblue", check_overlap=TRUE)+
+    scale_x_continuous(labels = comma)+
+    scale_y_continuous(labels = comma)
+# Grafico "beneficios"
+ggplot(ventas_producto, aes(beneficios)) +
+    geom_density(fill="royalblue", color=NA)
+
+
+# Grafico beneficios en funci?n de nom_familia y nom_seccion
+tapply(ventas_producto$sumcantidad, ventas_producto$nom_seccion, sum)
+tapply(ventas_producto$beneficios, ventas_producto$nom_seccion, sum)
+
+#Creo una nueva tabla donde a?adir los resultados de los beneficios por seccion
+group_seccion <- group_by(ventas_producto, nom_seccion)
+summaryTable5 <- summarise(group_seccion, beneficios = sum(beneficios))
+summaryTable6 <- summarise(group_seccion, sumcantidad = sum(sumcantidad))
+ventas_prod_seccion<-merge(summaryTable5, summaryTable6)
+write.table(ventas_prod_seccion, file = "ventas_prod_seccion.txt", sep = "\t",
+            row.names = TRUE, col.names = NA)
+
+g21<-ggplot(ventas_producto, aes(nom_seccion, beneficios)) +
+    geom_boxplot(fill="royalblue")+
+    scale_y_continuous(labels = comma)
+g21
+
+g22<-ggplot(ventas_producto, aes(nom_seccion, beneficios)) +
+    geom_boxplot(fill="royalblue")+
+    scale_y_continuous(labels = comma)+
+    ylim(0,25000)
+g22
+
+ggplot(ventas_producto, aes(x=beneficios, fill=nom_seccion)) +
+    geom_density(col=NA, alpha=0.45) 
+
+
+g24<-ggplot(ventas_producto, aes(x=beneficios, fill=nom_seccion)) +
+    geom_density(col=NA, alpha=0.35)+
+    xlim(0,25000)
+g24
+
+g25<-ggplot(ventas_producto, aes(sumcantidad, y=beneficios)) +
+    geom_text(aes(label=descripcion, colour=nom_seccion, fontface="bold"), size=3, check_overlap=TRUE)+
+    scale_x_continuous(labels = comma)+
+    scale_y_continuous(labels = comma)
+g25
+
+g26<-ggplot(ventas_producto, aes(sumcantidad, y=beneficios)) +
+    geom_text(aes(label=descripcion, colour=nom_seccion, fontface="bold"), size=3, check_overlap=TRUE)+
+    scale_x_continuous(labels = comma)+
+    scale_y_continuous(labels = comma)+
+    xlim(0,2500)+
+    ylim(0,25000)
+g26
+
+```
+```{r}
+# Modelo de asociaci?n: ?qu? productos se venden juntos?
+# Preparamos los datos para el an?lisis de reglas de asociaci?n
+# Copiar? la columna "descripcion" de "datos_producto" a la tabla "datos_lineas"
+datos_lineas$descripcion<-datos_producto$descripcion[match(datos_lineas$cod_producto, datos_producto$cod_producto)]
+
+# Combino la info de las columnas "cod_producto" y "descripcion" en una nueva columna llamada "cod_prod_combi"
+datos_lineas$cod_prod_combi <- paste(datos_lineas$cod_producto,"-",datos_lineas$descripcion)
+# Binarizamos los datos de los productos de "datos_lineas" en funci?n de "cod_venta"
+
+library(arules)
+
+mba<-split(datos_lineas[,"cod_prod_combi"], f=datos_lineas$cod_venta)
+mba<-lapply(mba,unique)
+mba<-as(mba,"transactions")
+summary(mba)
+length(unique(datos_lineas$cod_venta))
+# identifico cuales son los 20 productos m?s vendidos
+itemFrequencyPlot(mba,topN=20,type="absolute")
+
+rules <- apriori(mba, parameter = list(supp = 0.00008, conf = 0.95))
+rules <- sort(rules, by="confidence", decreasing=TRUE)
+inspect(rules[1:8], ruleSep = "---->", itemSep = " + ", setStart = "", setEnd ="", linebreak = FALSE)
+
+rules <- apriori(mba, parameter = list(supp = 0.0008, conf = 0.5))
+rules <- sort(rules, by="confidence", decreasing=TRUE)
+inspect(rules[1:8], ruleSep = "---->", itemSep = " + ", setStart = "", setEnd ="", linebreak = FALSE)
+write(rules, file="apriori_rules.txt", sep=",")
+
+#Graficamos usando la librer?a arulesViz
+library(arulesViz)
+plot(rules, method="grouped", control=list(type="items"))
+
+# Hacemos el mismo an?lisis para la tienda de Barcelona
+ventas_barcelona<-datos_lineas[which(datos_lineas$nom_tienda=="Barcelona"),]
+# Actualizo el n?mero de factores de la variable "cod_venta"
+ventas_barcelona$cod_venta<-factor(ventas_barcelona$cod_venta)
+
+mba2<-split(ventas_barcelona[,"cod_prod_combi"], f=ventas_barcelona$cod_venta)
+mba2<-lapply(mba2,unique)
+mba2<-as(mba2,"transactions")
+summary(mba2)
+
+# identifico cuales son los 20 productos m?s vendidos
+itemFrequencyPlot(mba2,topN=20,type="absolute")
+
+rules <- apriori(mba2, parameter = list(supp = 0.00004, conf = 0.4))
+rules <- sort(rules, by="confidence", decreasing=TRUE)
+inspect(rules[1:8], ruleSep = "---->", itemSep = " + ", setStart = "", setEnd ="", linebreak = FALSE)
+write(rules, file="apriori_rules_barcelona.txt", sep=",")
+
+
+```
+
+```{r}
+# Modelo de clasificaci?n y predicci?n
+# Haremos una predicci?n de cu?nto se gastan ("monetary") atendiendo a 7 variables:
+# sexo, edad, estado_civil, profesion, num_hijos, nacionalidad y nom_tienda
+
+#Elimino espacios en blanco de "estado_civil", "profesion" y "nom_tienda"
+cliente_part$estado_civil<-trimws(cliente_part$estado_civil)
+cliente_part$profesion<-trimws(cliente_part$profesion)
+cliente_part$nom_tienda<-trimws(cliente_part$nom_tienda)
+cliente_part$sexo<-trimws(cliente_part$sexo)
+
+#Quito las filas con valor "NA"
+df<-subset(cliente_part, !is.na(monetary))
+
+#Discretizo la variable "monetary" en funci?n de la mediana: "Gasto bajo" "Gasto alto"
+hist(df$monetary)
+summary(df$monetary)
+
+#df$monetary_int<-cut(df$monetary, breaks=quantile(df$monetary, seq(0,1, by=0.50)), labels= c("Gasto bajo", "Gasto alto"))
+
+df$monetary_int<-cut(df$monetary, breaks=c(0,300,4000), labels= c("Gasto bajo", "Gasto alto"))
+
+#Discretizo profesion
+df$profesion[df$profesion=="Ama de Casa"]<-"ama_casa"
+df$profesion[df$profesion=="Architectos,Decoradores & Humanistas"]<-"arquitectos"
+df$profesion[df$profesion=="Doctores & Profesionales de la Salud"]<-"doctores"
+df$profesion[df$profesion=="Economistas,Abogados & Admin.Empresas"]<-"economistas"
+df$profesion[df$profesion=="Gerentes & Directivos"]<-"gerentes"
+df$profesion[df$profesion=="Ingenieros & Especialistas"]<-"ingenieros"
+table(cliente_part$profesion)
+
+# Discretizo estado civil
+df$estado_civil[df$estado_civil=="Casado/a"]<-"casado"
+df$estado_civil[df$estado_civil=="Divorciado/a"]<-"divorciado"
+df$estado_civil[df$estado_civil=="Soltero/a"]<-"soltero"
+df$estado_civil[df$estado_civil=="Viudo/a"]<-"viudo"
+
+# Me aseguro de que las variables est?n factorizadas:
+
+df$sexo<-as.factor(df$sexo)
+df$estado_civil<-as.factor(df$estado_civil)
+df$profesion<-as.factor(df$profesion)
+df$nacionalidad<-as.factor(df$nacionalidad)
+df$nom_tienda<-as.factor(df$nom_tienda)
+df$rango_edad<-as.factor(df$rango_edad)
+
+# Desordeno aleatoriamente los datos
+set.seed(79)
+df_random<-df[sample(nrow(df)),]
+
+# Separo "monetary_int" del resto de variables y creo 2 tablas distintas
+y<-df_random[,21]
+x<-df_random[,c("sexo", "rango_edad", "estado_civil", "profesion","num_hijos", "nacionalidad","nom_tienda")]
+str(x)
+
+#Binarizo la columna "monetary_int"
+library(fastDummies)
+y<-fastDummies::dummy_cols(y)
+y$`.data_Gasto alto`<-as.factor(y$`.data_Gasto alto`)
+
+#Factorizo la columna correspondiente a "Gasto alto" que ser? la que haremos servir como outcome.
+y<-y[,2]
+y<-as.data.frame(y)
+colnames(y)<-"gasto_alto"
+y$gasto_alto<-as.factor(y$gasto_alto)
+head(y)
+
+# Creo los conjuntos "train" y "test" con 2/3, y 1/3 de los registros respectivamente
+nrow(x)
+trainx<-x[1:2095,]
+trainy<-y[1:2095,]
+testx<-x[2096:3142,]
+testy<-y[2096:3142,]
+
+# Me aseguro de que el formato de las tablas sean tipo dataframe
+
+trainx<-as.data.frame(trainx)
+trainy<-as.data.frame(trainy)
+testx<-as.data.frame(testx)
+testy<-as.data.frame(testy)
+
+#Ejecuto el paquete C5.0 para crear los modelos basados en ?rboles y reglas de decisi?n
+# Creo el ?rbol con los conjuntos de training, compuestos de 2095 casos
+library(C50)
+library(partykit)
+model_tree<-C50::C5.0(x=trainx, y=trainy)
+summary(model_tree)
+
+# Imprimo el ?rbol
+model_tree2<-C50:::as.party.C5.0(model_tree)
+plot(model_tree2)
+length(model_tree2)
+width(model_tree2)
+depth(model_tree2)
+
+# Guardo el output en un archivo de texto
+write(capture.output(summary(model_tree)), "c50model_tree.txt")
+
+# Genero las reglas de decisi?n a partir del ?rbol
+
+model_rules<-C50::C5.0(x=trainx, y=trainy, rules=TRUE)
+summary(model_rules)
+
+# Guardo el output en un archivo de texto
+write(capture.output(summary(model_rules)), "c50model_rules.txt")
+
+# Aplico el modelo del ?rbol de decisi?n en el set de testing
+
+predicted_model<-predict(model_tree, testx, type="class")
+summary(predicted_model)
+predicted_model<-as.data.frame(predicted_model)
+testy<-as.data.frame(testy)
+
+# calculamos la precisi?n del ?rbol de decisi?n
+
+sprintf("La precisi?n del ?rbol es: %.4f %%", 100*sum(predicted_model$predicted_model==testy$gasto_alto)/length(predicted_model$predicted_model))
+
+# Aplico el modelo de las reglas de decisi?n en el set de testing
+predicted_model1<-predict(model_rules, testx, type="class")
+summary(predicted_model1)
+predicted_model1<-as.data.frame(predicted_model1)
+sprintf("La precisi?n de las reglas de decisi?n es: %.4f %%", 100*sum(predicted_model1$predicted_model1==testy$gasto_alto)/length(predicted_model1$predicted_model1))
+
+# Calculamos la matriz de proporciones de falsos positivos y negativos para el modelo del ?rbol
+library(gmodels)
+testy<-unlist(testy)
+predicted_model<-unlist(predicted_model)
+CrossTable(testy, predicted_model, prop.chisq = FALSE, prop.c=FALSE, prop.r=FALSE, dnn=c("Reality", "Prediction"))
+
+# Calculamos la matriz de proporciones de falsos positivos y negativos para el modelo de las reglas de decisi?n
+predicted_model1<-unlist(predicted_model1)
+CrossTable(testy, predicted_model1, prop.chisq = FALSE, prop.c=FALSE, prop.r=FALSE, dnn=c("Reality", "Prediction"))
+
+# Si aplicamos el modelo en la tienda de Barcelona por ejemplo
+
+df_barcelona<-df_random[which(df_random$nom_tienda=="Barcelona"),]
+summary(df_barcelona$monetary)
+#df_barcelona$monetary_int<-cut(df$monetary, breaks=quantile(df_barcelona$monetary, seq(0,1, by=0.50)), labels= c("Gasto bajo", "Gasto alto"))
+
+df_barcelona$monetary_int<-cut(df_barcelona$monetary, breaks=c(0,110,900), labels= c("Gasto bajo", "Gasto alto"))
+
+y<-df_barcelona[,21]
+x<-df_barcelona[,c("sexo", "rango_edad", "estado_civil", "profesion","num_hijos", "nacionalidad","nom_tienda")]
+
+#Binarizo la columna "monetary_int"
+library(fastDummies)
+y<-fastDummies::dummy_cols(y)
+
+#Factorizo la columna correspondiente a "Gasto alto" que ser? la que haremos servir como outcome.
+y<-y[,2]
+y<-as.data.frame(y)
+colnames(y)<-"gasto_alto"
+y$gasto_alto<-as.factor(y$gasto_alto)
+# Creo los conjuntos "train" y "test" con 2/3, y 1/3 de los registros respectivamente
+
+nrow(x)
+trainx<-x[1:204,]
+trainy<-y[1:204,]
+testx<-x[204:306,]
+testy<-y[204:306,]
+
+# Me aseguro de que el formato de las tablas sean tipo dataframe
+
+trainx<-as.data.frame(trainx)
+trainy<-as.data.frame(trainy)
+testx<-as.data.frame(testx)
+testy<-as.data.frame(testy)
+
+#Ejecuto el paquete C5.0 para crear los modelos basados en ?rboles y reglas de decisi?n
+# Creo el ?rbol con los conjuntos de training, compuestos de 2095 casos
+library(C50)
+library(partykit)
+model_tree<-C50::C5.0(x=trainx, y=trainy$trainy)
+summary(model_tree)
+
+# Imprimo el ?rbol
+model_tree2<-C50:::as.party.C5.0(model_tree)
+plot(model_tree2)
+length(model_tree2)
+width(model_tree2)
+depth(model_tree2)
+
+# Guardo el output en un archivo de texto
+write(capture.output(summary(model_tree)), "c50model_tree_barcelona.txt")
+
+# Genero las reglas de decisi?n a partir del ?rbol
+
+model_rules<-C50::C5.0(x=trainx, y=trainy$trainy, rules=TRUE)
+summary(model_rules)
+
+# Guardo el output en un archivo de texto
+write(capture.output(summary(model_rules)), "c50model_rules_barcelona.txt")
+
+# Aplico el modelo del ?rbol de decisi?n en el set de testing
+
+predicted_model<-predict(model_tree, testx, type="class")
+summary(predicted_model)
+predicted_model<-as.data.frame(predicted_model)
+testy<-as.data.frame(testy)
+
+# calculamos la precisi?n del ?rbol de decisi?n
+
+sprintf("La precisi?n del ?rbol es: %.4f %%", 100*sum(predicted_model$predicted_model==testy$gasto_alto)/length(predicted_model$predicted_model))
+
+# Aplico el modelo de las reglas de decisi?n en el set de testing
+predicted_model1<-predict(model_rules, testx, type="class")
+summary(predicted_model1)
+predicted_model1<-as.data.frame(predicted_model1)
+sprintf("La precisi?n de las reglas de decisi?n es: %.4f %%", 100*sum(predicted_model1$predicted_model1==testy$gasto_alto)/length(predicted_model1$predicted_model1))
+
+# Calculamos la matriz de proporciones de falsos positivos y negativos para el modelo del ?rbol
+library(gmodels)
+testy<-unlist(testy)
+predicted_model<-unlist(predicted_model)
+CrossTable(testy, predicted_model, prop.chisq = FALSE, prop.c=FALSE, prop.r=FALSE, dnn=c("Reality", "Prediction"))
+
+# Calculamos la matriz de proporciones de falsos positivos y negativos para el modelo de las reglas de decisi?n
+predicted_model1<-unlist(predicted_model1)
+CrossTable(testy, predicted_model1, prop.chisq = FALSE, prop.c=FALSE, prop.r=FALSE, dnn=c("Reality", "Prediction"))
+
+# Hacemos 1 boosting 
+
+boost_rules_model<-C50::C5.0(x=trainx, y=trainy$trainy, trials=10, rules=TRUE)
+summary(boost_rules_model)
+
+boost_rules_model<-C50::C5.0(x=trainx, y=trainy$trainy, trials=10)
+summary(boost_rules_model)
+
+
+```
+```{r}
+# Predccion de ventas en funcion de nom_tienda, formato de tienda y superficie
+library(fastDummies)
+ventas_tienda2<-fastDummies::dummy_cols(ventas_tienda)
+datos_cabecera$nom_tienda<-trimws(datos_cabecera$nom_tienda)
+datos_tienda$nombre<-trimws(datos_tienda$nombre)
+match(datos_cabecera$nom_tienda, datos_tienda$nombre)
+datos_cabecera$formato<-datos_tienda$formato[match(datos_cabecera$nom_tienda, datos_tienda$nombre)]
+datos_cabecera$superficie<-datos_tienda$superficie[match(datos_cabecera$nom_tienda, datos_tienda$nombre)]
+predict_tienda<-datos_cabecera[,c("nom_tienda", "formato", "superficie", "importe_tot")]
+
+x_dummies<-fastDummies::dummy_cols(predict_tienda)
+
+#regresi?n lineal entre superficie e importe total
+library(GGally)
+ggpairs(data=x_dummies,columns=3:4)
+
+#regresi?n lineal entre formato de tienda e importe total
+x_dummies2<-x_dummies[,-(5:19)]
+ggpairs(data=x_dummies2,columns=4:7)
+
+#regresi?n lineal entre localizacion de tienda e importe total
+ggpairs(data=x_dummies,columns=4:19)
+
+# Creo los conjuntos "train" y "test" con 2/3, y 1/3 de los registros respectivamente
+nrow(x)
+trainx<-x[1:49552,]
+trainy<-y[1:2176,]
+testx<-x[2176:3264,]
+testy<-y[2176:3264,]
+
+table(df$profesion)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+```{r}
+
+
+
+
+
+
